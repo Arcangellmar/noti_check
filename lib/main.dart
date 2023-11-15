@@ -1,9 +1,10 @@
 import 'dart:convert';
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:noti_check/entities/char_data.dart';
 import 'package:noti_check/entities/response.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -142,7 +143,7 @@ class _HomeState extends State<Home> {
                             onPressed: () async {
                               if(formKey.currentState!.validate()) {
                                   try{
-                                    var response = await get(Uri.parse('https://592b-34-106-76-104.ngrok.io/validar?headline=${controllerTitle.text}&text=${controllerContent.text}'));
+                                    var response = await get(Uri.parse('https://dd92-34-106-76-104.ngrok.io/validar?headline=${controllerTitle.text}&text=${controllerContent.text}'));
 
                                     responseGeneral = responseFromJson(utf8.decode(response.bodyBytes));
 
@@ -177,25 +178,20 @@ class _HomeState extends State<Home> {
                         const Text("RESULTADOS"),
                         SizedBox(
                           height: 200,
-                          child: PieChart(
-                            PieChartData(
-                              sections: [
-                                PieChartSectionData(
-                                  color: Colors.red,
-                                  value: responseGeneral?.result[0].score ?? 0,
-                                  title: '${responseGeneral?.result[0].score ?? 0}%',
-                                ),
-                                PieChartSectionData(
-                                  color: Colors.lightBlue,
-                                  value: 100 - (responseGeneral?.result[0].score ?? 0),
-                                  title: '${100 - (responseGeneral?.result[0].score ?? 0)}%',
-                                ),
-                              ],
-                              sectionsSpace: 0,
-                              centerSpaceRadius: 40,
-                            ),
+                          child:  SfCircularChart(
+                            series: <CircularSeries>[
+                              // Render pie chart
+                              PieSeries<ChartData, String>(
+                                  dataSource: [ChartData(responseGeneral?.result[0].label ?? "", responseGeneral?.result[0].score ?? 0, Colors.red), ChartData("", 100 - (responseGeneral?.result[0].score ?? 0), const Color(0xFF8AC0CE))],
+                                  pointColorMapper:(ChartData data,  _) => data.color,
+                                  xValueMapper: (ChartData data, _) => data.y.toString(),
+                                  dataLabelMapper: (ChartData data, _) => "${data.y.toString()}%",
+                                  dataLabelSettings: const DataLabelSettings(isVisible: true),
+                                  yValueMapper: (ChartData data, _) => data.y
+                              )
+                            ]
                           ),
-                        ),
+                        )
                       ],
                     ) : const SizedBox()
                   ],
