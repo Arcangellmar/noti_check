@@ -1,4 +1,9 @@
+import 'dart:convert';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:noti_check/entities/response.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,10 +34,13 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
+  final formKey = GlobalKey<FormState>();
+
   var controllerTitle = TextEditingController();
   var controllerContent = TextEditingController();
 
-  final formKey = GlobalKey<FormState>();
+  ResponseEntitie? responseGeneral;
+  bool seeResults = false;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +94,7 @@ class _HomeState extends State<Home> {
                           const SizedBox(height: 15, width: double.infinity),
                           const Text("Ingresa el contenido de la noticia"),
                           SizedBox(
-                            height: 120, // <-- TextField height
+                            height: 120,
                             child: TextFormField(
                               maxLines: null,
                               expands: true,
@@ -118,6 +126,8 @@ class _HomeState extends State<Home> {
                             onPressed: () {
                               controllerContent.clear();
                               controllerTitle.clear();
+                              seeResults = false;
+                              setState(() {});
                             },
                             child: const Text("Limpiar")
                           ),
@@ -129,9 +139,23 @@ class _HomeState extends State<Home> {
                               foregroundColor: Colors.white,
                               backgroundColor: const Color(0xFF8AC0CE),
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               if(formKey.currentState!.validate()) {
+                                  try{
+                                    var response = await get(Uri.parse('https://592b-34-106-76-104.ngrok.io/validar?headline=${controllerTitle.text}&text=${controllerContent.text}'));
 
+                                    responseGeneral = responseFromJson(utf8.decode(response.bodyBytes));
+
+                                    responseGeneral?.result.first.score = double.parse(responseGeneral!.result.first.score.toStringAsFixed(2));
+
+                                    seeResults = true;
+
+                                  }
+                                  catch (_){
+                                    seeResults = false;
+                                  }
+
+                                  setState(() {});
                               }
                             },
                             child: const Text("Analizar Texto")
@@ -144,6 +168,36 @@ class _HomeState extends State<Home> {
                       leading: Image.asset("assets/home_3.png"),
                       title: const Text("Los resultados del análisis se mostrarán en la parte inferior", textAlign: TextAlign.justify),
                     ),
+                    seeResults ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 12),
+                        Text("El contenido es: ${responseGeneral?.result[0].label ?? ""}", style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                        const SizedBox(height: 12),
+                        const Text("RESULTADOS"),
+                        SizedBox(
+                          height: 200,
+                          child: PieChart(
+                            PieChartData(
+                              sections: [
+                                PieChartSectionData(
+                                  color: Colors.red,
+                                  value: responseGeneral?.result[0].score ?? 0,
+                                  title: '${responseGeneral?.result[0].score ?? 0}%',
+                                ),
+                                PieChartSectionData(
+                                  color: Colors.lightBlue,
+                                  value: 100 - (responseGeneral?.result[0].score ?? 0),
+                                  title: '${100 - (responseGeneral?.result[0].score ?? 0)}%',
+                                ),
+                              ],
+                              sectionsSpace: 0,
+                              centerSpaceRadius: 40,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ) : const SizedBox()
                   ],
                 ),
               )
